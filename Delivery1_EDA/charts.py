@@ -170,6 +170,47 @@ def dormant_members(view, days=90):
     return (view.loc[dormant, "plan_tier"].value_counts(normalize=True) * 100).round(1).to_frame("% of dormant active members")
 
 
+def plot_active_vs_ended(view):
+    """Compare the members who are still active with the members whose membership ended."""
+    status = view["active"].map({True: "Active", False: "Ended"})
+    colors = {"Ended": "#b0b0b0", "Active": MAIN_COLOR}
+    fig, axes = plt.subplots(1, 3, figsize=(20, 6), layout="constrained", gridspec_kw={"width_ratios": [0.7, 1.1, 1.2]})
+
+    sns.boxplot(x=status, y=view["utilisation"], order=["Ended", "Active"], hue=status, palette=colors, legend=False,
+                showfliers=False, width=0.5, linecolor="black", medianprops={"color": "black", "linewidth": 2}, ax=axes[0])
+    axes[0].set_title("Share of entitled visits used (last period)", fontsize=13)
+    axes[0].set_xlabel("")
+    axes[0].set_ylabel("")
+
+    # Share still active within each plan, so that the plan mix does not drive the comparison
+    groups = pd.cut(view["utilisation"], [-0.01, 0.2, 0.8, np.inf], labels=["below 20%", "20-80%", "above 80%"])
+    active_share = pd.crosstab(view["plan_tier"], groups, values=view["active"], aggfunc="mean") * 100
+    sns.heatmap(active_share, annot=True, fmt=".0f", cmap="Blues", vmin=0, vmax=100, linewidths=1, linecolor="white",
+                cbar_kws={"label": "Members still active (%)"}, ax=axes[1])
+    axes[1].set_title("Members still active (%), by plan and utilisation", fontsize=13)
+    axes[1].set_xlabel("Share of entitled visits used (last period)")
+    axes[1].set_ylabel("")
+    axes[1].tick_params(axis="y", labelrotation=0)
+
+    addons = view.groupby(status)[ADDON_COLUMNS].mean().T * 100
+    addons.index = addons.index.str.replace("uses_", "").str.replace("_", " ")
+    addons = addons.sort_values("Active")[["Ended", "Active"]]
+    addons.plot(kind="barh", color=[colors["Ended"], colors["Active"]], edgecolor="black", linewidth=0.5, width=0.75, ax=axes[2])
+    axes[2].set_title("Members using each add-on (%)", fontsize=13)
+    axes[2].set_xlabel("% of members")
+    axes[2].set_ylabel("")
+    axes[2].legend(frameon=False, loc="lower right")
+    plt.show()
+
+    return view.assign(status=status, addons_used=view[ADDON_COLUMNS].sum(axis=1)).groupby("status").agg(
+        members=("status", "size"),
+        median_utilisation=("utilisation", "median"),
+        median_addons_used=("addons_used", "median"),
+        median_weekly_visits=("avg_weekly_visits", "median"),
+        median_days_since_last_visit=("recency", "median"),
+    ).reindex(["Ended", "Active"]).round(2)
+
+
 def plot_profile_vs_plan(view):
     palette = [TIER_COLORS[t] for t in TIER_ORDER]
     fig, axes = plt.subplots(1, 2, figsize=(17, 5.5), layout="constrained", gridspec_kw={"width_ratios": [1.6, 1]})
