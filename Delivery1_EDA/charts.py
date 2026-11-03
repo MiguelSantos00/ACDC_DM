@@ -9,9 +9,9 @@ import seaborn as sns
 
 
 # Colours kept consistent with the rest of the project
-MAIN_COLOR = "#0062FF"
+MAIN_COLOR = "#A8AD91"
 TIER_ORDER = ["hot desk", "flex", "dedicated desk", "full time", "private office"]
-TIER_COLORS = dict(zip(TIER_ORDER, ["#c6dbef", "#9ecae1", "#6baed6", "#3182bd", "#08519c"]))   # light = cheaper plan, dark = premium
+TIER_COLORS = dict(zip(TIER_ORDER, ["#C9CEB8", "#C5CAB5", "#A8AD91", "#858D6D", "#626B4D"]))   # light = cheaper plan, dark = premium
 
 ADDON_COLUMNS = ["uses_meeting_rooms", "uses_event_space", "uses_guest_passes", "uses_print", "uses_mail_handling",
                  "uses_phone_booths", "uses_day_passes", "uses_storage", "uses_bike_locker"]
@@ -19,7 +19,7 @@ ADDON_COLUMNS = ["uses_meeting_rooms", "uses_event_space", "uses_guest_passes", 
 
 # ---------------------------------------------------------------- Distributions
 
-def plot_histograms(df, features, title, discrete_features=(), log_counts=True, n_cols=3):
+def plot_histograms(df, features, title, discrete_features=(), n_bins=20, log_counts=True, n_cols=3):
     """Plot one histogram per feature in a grid with n_cols columns."""
     n_rows = ceil(len(features) / n_cols)
     fig, axes = plt.subplots(n_rows, n_cols, figsize=(18, 4 * n_rows), layout="constrained", squeeze=False)
@@ -27,7 +27,7 @@ def plot_histograms(df, features, title, discrete_features=(), log_counts=True, 
 
     for i, (ax, feature) in enumerate(zip(axes, features)):
         # Whole-number variables get one bar per value; the others are split into 20 bins
-        sns.histplot(data=df, x=feature, bins=20, discrete=feature in discrete_features, ax=ax,
+        sns.histplot(data=df, x=feature, bins=n_bins, discrete=feature in discrete_features, ax=ax,
                      color=MAIN_COLOR, edgecolor="black", alpha=1)
 
         y_label = "Members"
@@ -135,7 +135,7 @@ def plot_addons_by_plan(view):
     table = view.groupby("plan_tier", observed=True)[ADDON_COLUMNS].mean().T * 100
     table.index = table.index.str.replace("uses_", "").str.replace("_", " ")
     fig, ax = plt.subplots(figsize=(10, 6), layout="constrained")
-    sns.heatmap(table, annot=True, fmt=".0f", cmap="Blues", vmin=0, vmax=100, linewidths=1, linecolor="white",
+    sns.heatmap(table, annot=True, fmt=".0f", cmap="Greens", vmin=0, vmax=100, linewidths=1, linecolor="white",
                 cbar_kws={"label": "Members using the service (%)"}, ax=ax)
     ax.set_title("Add-on adoption per plan (%)", fontsize=13)
     ax.set_xlabel("")
@@ -147,13 +147,13 @@ def plot_usage_patterns(view):
     fig, axes = plt.subplots(1, 2, figsize=(17, 5.5), layout="constrained")
 
     sns.histplot(view["utilisation"].clip(upper=1.2), bins=24, color=MAIN_COLOR, edgecolor="black", alpha=1, ax=axes[0])
-    axes[0].axvline(1, color="#ff6666", linestyle="--", linewidth=1.5)
+    axes[0].axvline(1, color="#7cf98b", linestyle="--", linewidth=1.5)
     axes[0].set_title("Share of entitled visits used in the last period", fontsize=13)
     axes[0].set_xlabel("Actual / entitled visits (1 = came every day the plan allows)")
     axes[0].set_ylabel("Members")
 
     active = view[view["active"] & view["avg_weekly_visits"].between(0, 7)]
-    hb = axes[1].hexbin(active["avg_weekly_visits"], active["recency"].clip(upper=400), gridsize=35, cmap="Blues", mincnt=1, bins="log")
+    hb = axes[1].hexbin(active["avg_weekly_visits"], active["recency"].clip(upper=400), gridsize=35, cmap="summer", mincnt=1, bins="log")
     fig.colorbar(hb, ax=axes[1], label="Members (log scale)")
     axes[1].set_title("Active members: visit frequency vs days since last visit", fontsize=13)
     axes[1].set_xlabel("Average weekly visits")
