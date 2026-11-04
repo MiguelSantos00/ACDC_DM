@@ -9,12 +9,17 @@ import seaborn as sns
 from matplotlib.colors import LinearSegmentedColormap
 
 
-# Colours kept consistent with the rest of the project
+# Colours kept consistent with the rest of the project (olive palette)
 MAIN_COLOR = "#A8AD91"
+ACTIVE_COLOR = "#626B4D"     # active members and new members
+ENDED_COLOR = "#D1948F"      # ended memberships
+HIGHLIGHT_COLOR = "indianred"   # problem values and flagged members
 TIER_ORDER = ["hot desk", "flex", "dedicated desk", "full time", "private office"]
-TIER_COLORS = dict(zip(TIER_ORDER, ["#C9CEB8", "#C5CAB5", "#A8AD91", "#858D6D", "#626B4D"]))   # light = cheaper plan, dark = premium
+TIER_COLORS = dict(zip(TIER_ORDER, ["#DADDCC", "#C2C7AE", "#A8AD91", "#858D6D", "#626B4D"]))   # light = cheaper plan, dark = premium
+# Sequential colour map for counts and shares: white = low, dark olive = high
 colors = ["#ffffff", "#A8AD91", "#141610"]
 custom_cmap = LinearSegmentedColormap.from_list("BrancoCustomPreto", colors)
+# Diverging colour map for correlations: pink = negative, white = 0, olive = positive
 cores_correlacao = ["#D1948F", "#ffffff", "#626B4D"]
 cmap_corr = LinearSegmentedColormap.from_list("CorrOlivaRosa", cores_correlacao)
 
@@ -179,7 +184,7 @@ def dormant_members(view, days=90):
 def plot_active_vs_ended(view):
     """Compare the members who are still active with the members whose membership ended."""
     status = view["active"].map({True: "Active", False: "Ended"})
-    colors = {"Ended": "#C5CAB5", "Active": "#626B4D"}
+    colors = {"Ended": ENDED_COLOR, "Active": ACTIVE_COLOR}
     fig, axes = plt.subplots(1, 3, figsize=(20, 6), layout="constrained", gridspec_kw={"width_ratios": [0.7, 1.1, 1.2]})
 
     sns.boxplot(x=status, y=view["utilisation"], order=["Ended", "Active"], hue=status, palette=colors, legend=False,
