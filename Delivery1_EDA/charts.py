@@ -6,12 +6,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from matplotlib.colors import LinearSegmentedColormap
 
 
 # Colours kept consistent with the rest of the project
 MAIN_COLOR = "#A8AD91"
 TIER_ORDER = ["hot desk", "flex", "dedicated desk", "full time", "private office"]
 TIER_COLORS = dict(zip(TIER_ORDER, ["#C9CEB8", "#C5CAB5", "#A8AD91", "#858D6D", "#626B4D"]))   # light = cheaper plan, dark = premium
+colors = ["#ffffff", "#A8AD91", "#141610"]
+custom_cmap = LinearSegmentedColormap.from_list("BrancoCustomPreto", colors)
+cores_correlacao = ["#D1948F", "#ffffff", "#626B4D"]
+cmap_corr = LinearSegmentedColormap.from_list("CorrOlivaRosa", cores_correlacao)
+
 
 ADDON_COLUMNS = ["uses_meeting_rooms", "uses_event_space", "uses_guest_passes", "uses_print", "uses_mail_handling",
                  "uses_phone_booths", "uses_day_passes", "uses_storage", "uses_bike_locker"]
@@ -135,7 +141,7 @@ def plot_addons_by_plan(view):
     table = view.groupby("plan_tier", observed=True)[ADDON_COLUMNS].mean().T * 100
     table.index = table.index.str.replace("uses_", "").str.replace("_", " ")
     fig, ax = plt.subplots(figsize=(10, 6), layout="constrained")
-    sns.heatmap(table, annot=True, fmt=".0f", cmap="Greens", vmin=0, vmax=100, linewidths=1, linecolor="white",
+    sns.heatmap(table, annot=True, fmt=".0f", cmap=custom_cmap, vmin=0, vmax=100, linewidths=1, linecolor="white",
                 cbar_kws={"label": "Members using the service (%)"}, ax=ax)
     ax.set_title("Add-on adoption per plan (%)", fontsize=13)
     ax.set_xlabel("")
@@ -147,13 +153,13 @@ def plot_usage_patterns(view):
     fig, axes = plt.subplots(1, 2, figsize=(17, 5.5), layout="constrained")
 
     sns.histplot(view["utilisation"].clip(upper=1.2), bins=24, color=MAIN_COLOR, edgecolor="black", alpha=1, ax=axes[0])
-    axes[0].axvline(1, color="#7cf98b", linestyle="--", linewidth=1.5)
+    axes[0].axvline(1, color="#030303", linestyle="--", linewidth=1.5)
     axes[0].set_title("Share of entitled visits used in the last period", fontsize=13)
     axes[0].set_xlabel("Actual / entitled visits (1 = came every day the plan allows)")
     axes[0].set_ylabel("Members")
 
     active = view[view["active"] & view["avg_weekly_visits"].between(0, 7)]
-    hb = axes[1].hexbin(active["avg_weekly_visits"], active["recency"].clip(upper=400), gridsize=35, cmap="summer", mincnt=1, bins="log")
+    hb = axes[1].hexbin(active["avg_weekly_visits"], active["recency"].clip(upper=400), gridsize=35, cmap=custom_cmap, mincnt=1, bins="log")
     fig.colorbar(hb, ax=axes[1], label="Members (log scale)")
     axes[1].set_title("Active members: visit frequency vs days since last visit", fontsize=13)
     axes[1].set_xlabel("Average weekly visits")
@@ -173,7 +179,7 @@ def dormant_members(view, days=90):
 def plot_active_vs_ended(view):
     """Compare the members who are still active with the members whose membership ended."""
     status = view["active"].map({True: "Active", False: "Ended"})
-    colors = {"Ended": "#b0b0b0", "Active": MAIN_COLOR}
+    colors = {"Ended": "#C5CAB5", "Active": "#626B4D"}
     fig, axes = plt.subplots(1, 3, figsize=(20, 6), layout="constrained", gridspec_kw={"width_ratios": [0.7, 1.1, 1.2]})
 
     sns.boxplot(x=status, y=view["utilisation"], order=["Ended", "Active"], hue=status, palette=colors, legend=False,
@@ -185,7 +191,7 @@ def plot_active_vs_ended(view):
     # Share still active within each plan, so that the plan mix does not drive the comparison
     groups = pd.cut(view["utilisation"], [-0.01, 0.2, 0.8, np.inf], labels=["below 20%", "20-80%", "above 80%"])
     active_share = pd.crosstab(view["plan_tier"], groups, values=view["active"], aggfunc="mean") * 100
-    sns.heatmap(active_share, annot=True, fmt=".0f", cmap="Blues", vmin=0, vmax=100, linewidths=1, linecolor="white",
+    sns.heatmap(active_share, annot=True, fmt=".0f", cmap=custom_cmap, vmin=0, vmax=100, linewidths=1, linecolor="white",
                 cbar_kws={"label": "Members still active (%)"}, ax=axes[1])
     axes[1].set_title("Members still active (%), by plan and utilisation", fontsize=13)
     axes[1].set_xlabel("Share of entitled visits used (last period)")
